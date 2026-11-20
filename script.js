@@ -4,6 +4,8 @@ const productContainer = document.querySelector("#products-container")
 const categoriesFilter = document.querySelector("#category-filters")
 const searchInput = document.querySelector("#search-input")
 const wishlistCount = document.querySelector("#wishlist-count")
+const cartCount = document.querySelector("#cart-count")
+const cartContainer = document.querySelector("#cart-container")
 
 
 function formateCategory(category) {
@@ -147,11 +149,6 @@ if (searchInput) {
 
 }
 
-
-
-
-
-
 ///////////////////////////////detail page//////////////////////////////
 async function loadProductPage() {
     const productDetailContainer = document.querySelector("#product-detail-container")
@@ -290,20 +287,19 @@ async function loadProductPage() {
     const addToWishlistBtn = document.querySelector("#add-to-wishlist-btn")
     addToWishlistBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        const wishlistProduct = getItem("wishlist")
-        console.log(wishlistProduct)
-        if (wishlistProduct.length) {
-            const isExist = wishlistProduct.some(p => p.id === data.id)
-            if (!isExist) {
-                setItem("wishlist", [data, ...wishlistProduct])
-            }
-
-        } else {
-            setItem("wishlist", [data, ...wishlistProduct])
-        }
-        updateWishlistCount()
+        addToWishlist(data)
     });
+    const addToCartBtn = document.querySelector("#add-to-cart-btn")
+    addToCartBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        addToCart(data)
+    });
+
 }
+
+
+
+
 loadProductPage()
 
 function loadWishlistPage() {
@@ -317,8 +313,8 @@ function loadWishlistPage() {
     const outterDiv = document.createElement("div")
     outterDiv.className = "bg-white border border-slate-200 rounded-lg divide-y divide-slate-200 overflow-hidden shadow-sm"
 
- if (!wishlistProduct.length) {
-        wishlistContainer.innerHTML =`
+    if (!wishlistProduct.length) {
+        wishlistContainer.innerHTML = `
          <div class="bg-white border border-slate-200 rounded-lg p-12 text-center max-w-md mx-auto my-8">
         <div class="w-16 h-16 mx-auto mb-4 text-slate-300 flex items-center justify-center">
           <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -334,35 +330,36 @@ function loadWishlistPage() {
         `
         retuen
     }
-    wishlistContainer.innerHTML = ""
-    wishlistProduct.forEach(p => {
-        console.log(p.id)
+    wishlistContainer.innerHTML = "";
+    wishlistProduct.forEach(data => {
+        const { id, title, thumbnail, price } = data
+        console.log(id)
         const div = document.createElement("div")
         div.className = "p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-6"
 
         const card = `<div class="flex items-center gap-4 w-full sm:w-auto flex-1 min-w-0">
             <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white border border-slate-200 rounded p-1.5 flex items-center justify-center shrink-0">
               <img 
-                src=${p.thumbnail} 
-                alt=${p.title} 
+                src=${thumbnail} 
+                alt=${title} 
                 class="max-h-full max-w-full object-contain"
               >
             </div>
             <div class="min-w-0 flex-1">
               <a 
-                href="product-details.html?id=${p.id}" 
+                href="product-details.html?id=${id}" 
                 class="text-sm font-semibold text-slate-900 hover:text-teal-700 line-clamp-2 transition" 
-                title=${p.title}
+                title=${title}
               >
-                ${p.title}
+                ${title}
               </a>
-              <p class="text-sm font-bold text-slate-900 mt-1">₹${convertToINR(p.price)}</p>
+              <p class="text-sm font-bold text-slate-900 mt-1">₹${convertToINR(price)}</p>
             </div>
           </div>
           <div class="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-end">
             <button 
               type="button"
-              data-id=${p.id} 
+              data-id=${id} 
                
               class="wishlist-add-cart-btn inline-flex items-center justify-center gap-1.5 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium py-2 px-4 rounded transition shadow-sm"
             >
@@ -373,7 +370,7 @@ function loadWishlistPage() {
             </button>
             <button 
               type="button" 
-              data-id=${p.id}
+              data-id=${id}
               
               class="wishlist-remove-btn inline-flex items-center justify-center gap-1.5 text-slate-500 hover:text-red-600 border border-slate-300 hover:border-red-300 text-sm font-medium py-2 px-3 rounded transition"
               title="Remove from Wishlist"
@@ -392,19 +389,65 @@ function loadWishlistPage() {
 
     wishlistContainer.addEventListener("click", (e) => {
         e.stopPropagation();
+
+
+        const addToCartBtn = e.target.closest(".wishlist-add-cart-btn")
         const removeWishlistBtn = e.target.closest(".wishlist-remove-btn")
+
+
         if (removeWishlistBtn) {
             console.log(removeWishlistBtn.dataset.id)
             const removeProductId = Number(removeWishlistBtn.dataset.id)
-            const filterProducts = getItem("wishlist").filter(({id}) => id !== removeProductId)
+            const filterProducts = getItem("wishlist").filter(({ id }) => id !== removeProductId)
             setItem("wishlist", filterProducts)
             updateWishlistCount()
             loadWishlistPage()
         }
+        if (addToCartBtn) {
+            const productId = Number(addToCartBtn.dataset.id)
+            const data = getItem("wishlist").find(({ id }) => id === productId)
+            console.log(data)
+            addToCart(data)
+        }
     })
+
 }
 loadWishlistPage()
 
+function addToCart(data) {
+    const cartProduct = getItem("cart")
+    console.log(cartProduct)
+
+    if (cartProduct.length) {
+        const isExist = cartProduct.some((p) => p.id === data.id)
+        if (!isExist) {
+            setItem("cart", [data, ...cartProduct])
+        }
+
+    } else {
+        setItem("cart", [data])
+    }
+    updatecartCount()
+    //});
+
+
+}
+
+function addToWishlist(data) {
+    const wishlistProduct = getItem("wishlist")
+    console.log(wishlistProduct)
+    if (wishlistProduct.length) {
+        const isExist = wishlistProduct.some(p => p.id === data.id)
+        if (!isExist) {
+            setItem("wishlist", [data, ...wishlistProduct])
+        }
+
+    } else {
+        setItem("wishlist", [data, ...wishlistProduct])
+    }
+    updateWishlistCount()
+
+}
 
 if (productContainer) {
     fetchProducts(API)
@@ -415,8 +458,154 @@ if (productContainer) {
 function updateWishlistCount() {
     wishlistCount.textContent = getItem("wishlist").length
 }
-
 updateWishlistCount()
-// function init() {
+function updatecartCount() {
+    cartCount.textContent = getItem("cart").length
+}
+updatecartCount()
 
-// }
+
+
+function loadCart() {
+    if (!cartContainer) {
+        return
+    }
+
+    let cartData = getItem("cart")
+    cartContainer.innerHTML = ""
+    if (!cartData.length) {
+        cartContainer.innerHTML = `
+         <div class="bg-white border border-slate-200 rounded-lg p-12 text-center max-w-md mx-auto my-8">
+        <div class="w-16 h-16 mx-auto mb-4 text-slate-300 flex items-center justify-center">
+          <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold text-slate-800 mb-2">Your cart is empty</h2>
+        <p class="text-slate-500 text-sm mb-6">Looks like you haven't added anything to your cart yet.</p>
+        <a href="index.html" class="inline-flex items-center justify-center bg-teal-700 hover:bg-teal-800 text-white font-medium px-6 py-2.5 rounded-md transition text-sm">
+          Start Shopping
+        </a>
+      </div>
+     `
+        return;
+    }
+
+    const mainDIv = document.createElement("div")
+
+    mainDIv.classlist = "grid grid-cols-1 lg:grid-cols-3 gap-8 items-start"
+    const div1 = document.createElement("div")
+    div1.classlist = "lg:col-span-2 bg-white border border-slate-200 rounded-lg divide-y divide-slate-200 overflow-hidden shadow-sm"
+    let totalPrice = 0
+    cartData.forEach(item => {
+        const { thumbnail, id, price, title } = item
+
+        totalPrice = totalPrice + price
+        const itemDiv = document.createElement("div")
+        itemDiv.classlist = "p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-between"
+        itemDiv.innerHTML = `
+         <div class="flex items-center gap-4 w-full sm:w-auto flex-1 min-w-0">
+              <div
+                class="w-16 h-16 sm:w-20 sm:h-20 bg-white border border-slate-200 rounded p-1.5 flex items-center justify-center shrink-0">
+                <img src=${thumbnail}
+                  alt=${title}>
+              </div>
+              <div class="min-w-0 flex-1">
+                <a href="product-details.html?id=${id}"
+                  class="text-sm font-semibold text-slate-900 hover:text-teal-700 line-clamp-2 transition"
+                  title=${title}>
+                  ${title}
+                </a>
+                <p class="text-xs text-slate-500 mt-1">₹${convertToINR(price)} each</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto shrink-0">
+              <div class="flex items-center border border-slate-300 rounded bg-white">
+                <button type="button"
+                  class="cart-qty-minus p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-l transition"
+                  aria-label="Decrease quantity">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                  </svg>
+                </button>
+                <span class="w-8 text-center text-xs font-semibold text-slate-800 select-none">1</span>
+                <button type="button"
+                  class="cart-qty-plus p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-r transition"
+                  aria-label="Increase quantity">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="w-20 text-right">
+                <span class="text-sm font-bold text-slate-900">₹${convertToINR(price)}</span>
+              </div>
+              <button type="button"
+                class="cart-wishlist-btn text-slate-400 hover:text-teal-700 p-1.5 rounded transition"
+                title="Add to Wishlist" aria-label="Add to Wishlist">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z">
+                  </path>
+                </svg>
+              </button>
+              <button type="button" class="cart-remove-btn text-slate-400 hover:text-red-600 p-1.5 rounded transition"
+                title="Remove from cart" aria-label="Remove item">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                  </path>
+                </svg>
+              </button>
+            </div>`
+
+        itemDiv.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const removeCartBtn = e.target.closest(".cart-remove-btn")
+            const cartWishlistBtn = e.target.closest(".cart-wishlist-btn")
+            if (removeCartBtn) {
+                const filterProducts = getItem("cart").filter(({ id : itemId }) => itemId !== id)
+                setItem("cart", filterProducts)
+                updatecartCount()
+                loadCart()
+
+            }
+            if(cartWishlistBtn){
+                addToWishlist(item)
+            }
+
+        })
+        div1.append(itemDiv)
+    })
+    const div2 = document.createElement("div")
+    div2.classlist = "bg-white border border-slate-200 rounded-lg p-6 shadow-sm sticky top-24"
+    div2.innerHTML = `
+     <h2 class="text-lg font-bold text-slate-900 mb-4 pb-3 border-b border-slate-200">
+            Order Summary
+          </h2>
+
+          <div class="flex items-center justify-between text-base font-semibold text-slate-900 mb-6">
+            <span>Total Amount</span>
+            <span class="text-xl font-bold text-teal-700">₹${convertToINR(totalPrice)}</span>
+          </div>
+
+          <button type="button" id="checkout-btn"
+            class="w-full bg-teal-700 hover:bg-teal-800 text-white font-medium py-3 px-4 rounded-md shadow-sm transition text-center">
+            Proceed to Checkout
+          </button>
+    `
+
+
+
+    mainDIv.append(div1, div2)
+    cartContainer.append(mainDIv)
+
+}
+loadCart()
+function init() {
+
+}
