@@ -6,17 +6,17 @@ const searchInput = document.querySelector("#search-input")
 const wishlistCount = document.querySelector("#wishlist-count")
 const cartCount = document.querySelector("#cart-count")
 const cartContainer = document.querySelector("#cart-container")
-
+let allCategories = []
 
 function formateCategory(category) {
     return category.replace("-", " ");
 }
 
-
 function getItem(key) {
     return JSON.parse(localStorage.getItem(key)) || []
 
 }
+
 function setItem(key, data) {
     localStorage.setItem(key, JSON.stringify(data))
 
@@ -25,17 +25,6 @@ function setItem(key, data) {
 function convertToINR(price) {
     return (price * 96.29).toFixed(2)
 }
-// let allProduct = []
-// let allCategories = []
-// function findCategories(){
-//     allProduct.forEach(({category})=>{
-//         if(!allCategories.includes(category)){
-//             allCategories.push(category)
-//         }
-//     })
-//     console.log()
-// }
-let allCategories = []
 
 async function fetchProducts(url) {
     productContainer.innerHTML = "Loding..."
@@ -49,51 +38,6 @@ async function fetchProducts(url) {
 
     }
 }
-
-
-
-function renderProducts(products) {
-    productContainer.innerHTML = ""
-    if (products.length > 0) {
-        products.forEach(p => {
-            let article = document.createElement("article")
-            article.className = "bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between hover:border-slate-300 hover:shadow-sm transition"
-            let card = `
-                    <div class="h-48 w-full flex items-center justify-center p-3 mb-4 bg-white">
-                        <img src="${p.thumbnail}"
-                            alt=${p.title} class="max-h-full max-w-full object-contain"
-                            loading="lazy">
-                    </div>
-                    <div class="flex-grow flex flex-col">
-                        <span class="text-xs font-semibold text-teal-700 uppercase tracking-wider mb-1">
-                            ${formateCategory(p.category)}
-                        </span>
-                        <h2 class="font-semibold text-slate-900 text-sm mb-2 line-clamp-2"
-                            title=${p.title}>
-                            ${p.title}
-                        </h2>
-                        <div class="mt-auto pt-2">
-                            <span class="text-lg font-bold text-slate-900">
-                                ${convertToINR(p.price)}
-                            </span>
-                        </div>
-                        <a href="product-details.html?id=${p.id}"
-                            class="mt-4 block w-full text-center bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium py-2 px-4 rounded transition">
-                            View Details
-                        </a>
-                    </div>
-                `
-
-            article.innerHTML = card
-            productContainer.append(article)
-        })
-    } else {
-        productContainer.innerHTML = "Product Not Found"
-    }
-
-}
-
-
 async function fetchCategories() {
     try {
         const response = await fetch(CATEGORY_API);
@@ -105,51 +49,6 @@ async function fetchCategories() {
 
     }
 }
-
-
-function renderCategories(currentCategoryslug = "all") {
-    categoriesFilter.innerHTML = "";
-    allCategories.forEach(({ name, slug, url }) => {
-        let button = document.createElement("button")
-        if (currentCategoryslug === slug) {
-            button.className = "px-4 py-1.5 rounded-md text-sm font-medium bg-teal-700 text-white capitalize transition"
-        } else {
-            button.className = "px-4 py-1.5 rounded-md text-sm font-medium bg-white text-slate-700 border border-slate-300 hover:bg-slate-100 capitalize transition"
-        }
-        button.type = "button"
-        button.textContent = name
-        button.dataset.category = slug
-        button.dataset.url = url
-        categoriesFilter.append(button)
-    })
-}
-
-if (categoriesFilter) {
-    categoriesFilter.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const element = e.target
-        if (element.type) {
-            const category = element.dataset.category;
-            const url = element.dataset.url;
-            renderCategories(category)
-            fetchProducts(url)
-        }
-    })
-
-}
-
-if (searchInput) {
-    searchInput.addEventListener("input", (e) => {
-        e.preventDefault()
-        e.stopPropagation();
-        let value = searchInput.value;
-        const url = `https://dummyjson.com/products/search?q=${value}&limit=0`
-        fetchProducts(url)
-    })
-
-}
-
-///////////////////////////////detail page//////////////////////////////
 async function loadProductPage() {
     const productDetailContainer = document.querySelector("#product-detail-container")
     if (!productDetailContainer) {
@@ -284,6 +183,26 @@ async function loadProductPage() {
         </div>
       </div>`;
     productDetailContainer.innerHTML = div;
+
+    const qtyValue = document.querySelector("#qty-value")
+
+    document.querySelector("#qty-plus").addEventListener("click", (e) => {
+        e.stopPropagation();
+        qtyValue.textContent = Number(qtyValue.textContent) + 1
+    })
+
+
+    document.querySelector("#qty-minus").addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (Number(qtyValue.textContent) <= 1) {
+            //removeFromCart()
+        } else {
+            qtyValue.textContent = Number(qtyValue.textContent) - 1
+
+        }
+
+    })
+
     const addToWishlistBtn = document.querySelector("#add-to-wishlist-btn")
     addToWishlistBtn.addEventListener("click", (e) => {
         e.preventDefault();
@@ -292,15 +211,69 @@ async function loadProductPage() {
     const addToCartBtn = document.querySelector("#add-to-cart-btn")
     addToCartBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        addToCart(data)
+        addToCart({ ...data, quantity: Number(qtyValue.textContent) })
     });
+
 
 }
 
+function renderProducts(products) {
+    productContainer.innerHTML = ""
+    if (products.length > 0) {
+        products.forEach(p => {
+            let article = document.createElement("article")
+            article.className = "bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between hover:border-slate-300 hover:shadow-sm transition"
+            let card = `
+                    <div class="h-48 w-full flex items-center justify-center p-3 mb-4 bg-white">
+                        <img src="${p.thumbnail}"
+                            alt=${p.title} class="max-h-full max-w-full object-contain"
+                            loading="lazy">
+                    </div>
+                    <div class="flex-grow flex flex-col">
+                        <span class="text-xs font-semibold text-teal-700 uppercase tracking-wider mb-1">
+                            ${formateCategory(p.category)}
+                        </span>
+                        <h2 class="font-semibold text-slate-900 text-sm mb-2 line-clamp-2"
+                            title=${p.title}>
+                            ${p.title}
+                        </h2>
+                        <div class="mt-auto pt-2">
+                            <span class="text-lg font-bold text-slate-900">
+                                ${convertToINR(p.price)}
+                            </span>
+                        </div>
+                        <a href="product-details.html?id=${p.id}"
+                            class="mt-4 block w-full text-center bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium py-2 px-4 rounded transition">
+                            View Details
+                        </a>
+                    </div>
+                `
 
+            article.innerHTML = card
+            productContainer.append(article)
+        })
+    } else {
+        productContainer.innerHTML = "Product Not Found"
+    }
 
+}
 
-loadProductPage()
+function renderCategories(currentCategoryslug = "all") {
+    categoriesFilter.innerHTML = "";
+    allCategories.forEach(({ name, slug, url }) => {
+        let button = document.createElement("button")
+        if (currentCategoryslug === slug) {
+            button.className = "px-4 py-1.5 rounded-md text-sm font-medium bg-teal-700 text-white capitalize transition"
+        } else {
+            button.className = "px-4 py-1.5 rounded-md text-sm font-medium bg-white text-slate-700 border border-slate-300 hover:bg-slate-100 capitalize transition"
+        }
+        button.type = "button"
+        button.textContent = name
+        button.dataset.category = slug
+        button.dataset.url = url
+        categoriesFilter.append(button)
+    })
+}
 
 function loadWishlistPage() {
     const wishlistContainer = document.querySelector("#wishlist-container")
@@ -406,21 +379,28 @@ function loadWishlistPage() {
         if (addToCartBtn) {
             const productId = Number(addToCartBtn.dataset.id)
             const data = getItem("wishlist").find(({ id }) => id === productId)
-            console.log(data)
-            addToCart(data)
+            addToCart({ ...data, quantity: 1 })
         }
     })
 
 }
-loadWishlistPage()
 
 function addToCart(data) {
     const cartProduct = getItem("cart")
     console.log(cartProduct)
 
     if (cartProduct.length) {
-        const isExist = cartProduct.some((p) => p.id === data.id)
-        if (!isExist) {
+        const isExist = cartProduct.find((p) => p.id === data.id)
+        if (isExist) {
+            // data = { ...data, quantity: Number(data.quantity) + Number(isExist.quantity)}
+            const filterProduct = cartProduct.map(item => {
+                if (item.id === isExist.id) {
+                    return { ...data, quantity: Number(data.quantity) + Number(isExist.quantity) }
+                }
+                return item
+            })
+            setItem("cart", filterProduct)
+        } else {
             setItem("cart", [data, ...cartProduct])
         }
 
@@ -449,22 +429,16 @@ function addToWishlist(data) {
 
 }
 
-if (productContainer) {
-    fetchProducts(API)
-    fetchCategories()
-}
-
-
 function updateWishlistCount() {
     wishlistCount.textContent = getItem("wishlist").length
 }
-updateWishlistCount()
+
 function updatecartCount() {
-    cartCount.textContent = getItem("cart").length
+    // cartCount.textContent = getItem("cart").length
+    cartCount.textContent = getItem("cart").reduce((acc, cur) => {
+        return Number(acc + cur.quantity)
+    }, 0)
 }
-updatecartCount()
-
-
 
 function loadCart() {
     if (!cartContainer) {
@@ -498,9 +472,9 @@ function loadCart() {
     div1.classlist = "lg:col-span-2 bg-white border border-slate-200 rounded-lg divide-y divide-slate-200 overflow-hidden shadow-sm"
     let totalPrice = 0
     cartData.forEach(item => {
-        const { thumbnail, id, price, title } = item
+        const { thumbnail, id, price, title, quantity } = item
 
-        totalPrice = totalPrice + price
+        totalPrice = totalPrice + price * quantity
         const itemDiv = document.createElement("div")
         itemDiv.classlist = "p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-between"
         itemDiv.innerHTML = `
@@ -521,7 +495,7 @@ function loadCart() {
             </div>
             <div class="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto shrink-0">
               <div class="flex items-center border border-slate-300 rounded bg-white">
-                <button type="button"
+                <button type="button"data-id=${id}
                   class="cart-qty-minus p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-l transition"
                   aria-label="Decrease quantity">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -529,8 +503,8 @@ function loadCart() {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
                   </svg>
                 </button>
-                <span class="w-8 text-center text-xs font-semibold text-slate-800 select-none">1</span>
-                <button type="button"
+                <span class="w-8 text-center text-xs font-semibold text-slate-800 select-none">${quantity}</span>
+                <button type="button"data-id=${id}
                   class="cart-qty-plus p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-r transition"
                   aria-label="Increase quantity">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -540,7 +514,7 @@ function loadCart() {
                 </button>
               </div>
               <div class="w-20 text-right">
-                <span class="text-sm font-bold text-slate-900">₹${convertToINR(price)}</span>
+                <span class="text-sm font-bold text-slate-900">₹${(Number(quantity) * convertToINR(price)).toFixed(2)}</span>
               </div>
               <button type="button"
                 class="cart-wishlist-btn text-slate-400 hover:text-teal-700 p-1.5 rounded transition"
@@ -568,17 +542,18 @@ function loadCart() {
             const removeCartBtn = e.target.closest(".cart-remove-btn")
             const cartWishlistBtn = e.target.closest(".cart-wishlist-btn")
             if (removeCartBtn) {
-                const filterProducts = getItem("cart").filter(({ id : itemId }) => itemId !== id)
+                const filterProducts = getItem("cart").filter(({ id: itemId }) => itemId !== id)
                 setItem("cart", filterProducts)
                 updatecartCount()
                 loadCart()
 
             }
-            if(cartWishlistBtn){
+            if (cartWishlistBtn) {
                 addToWishlist(item)
             }
 
         })
+
         div1.append(itemDiv)
     })
     const div2 = document.createElement("div")
@@ -604,8 +579,77 @@ function loadCart() {
     mainDIv.append(div1, div2)
     cartContainer.append(mainDIv)
 
+    cartContainer.querySelectorAll(".cart-qty-minus").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const span = e.currentTarget.nextElementSibling
+            const id = e.currentTarget.dataset.id
+            let value = Number(span.textContent)
+            if (value <= 1) {
+                //removeFromCart()
+            } else {
+                span.textContent = Number(span.textContent) - 1;
+                updateCartItemQuantity(id, span.textContent)
+            }
+        })
+    })
+    cartContainer.querySelectorAll(".cart-qty-plus").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const span = e.currentTarget.previousElementSibling
+            const id = e.currentTarget.dataset.id
+            span.textContent = Number(span.textContent) + 1
+            updateCartItemQuantity(id, span.textContent)
+        })
+    })
+
+}
+
+function updateCartItemQuantity(id, quantity) {
+    const cartProduct = getItem("cart")
+    const filterProduct = cartProduct.map((item) => {
+        if (item.id === Number(id)) {
+            return {
+                ...item, quantity
+            }
+        }
+        return item;
+    })
+    setItem("cart", filterProduct)
+    loadCart()
 }
 loadCart()
 function init() {
+    if (categoriesFilter) {
+        categoriesFilter.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const element = e.target
+            if (element.type) {
+                const category = element.dataset.category;
+                const url = element.dataset.url;
+                renderCategories(category)
+                fetchProducts(url)
+            }
+        })
+
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener("input", (e) => {
+            e.preventDefault()
+            e.stopPropagation();
+            let value = searchInput.value;
+            const url = `https://dummyjson.com/products/search?q=${value}&limit=0`
+            fetchProducts(url)
+        })
+
+    }
+    if (productContainer) {
+    fetchProducts(API)
+    fetchCategories()
+}
+    loadProductPage()
+    loadWishlistPage()
+    updateWishlistCount()
+    updatecartCount()
 
 }
+init()
